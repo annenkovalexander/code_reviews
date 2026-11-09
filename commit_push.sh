@@ -39,10 +39,8 @@ fi
 
 # --- 4. Run e2e tests --------------------------------------------------------
 echo "==> Running e2e tests..."
-#DATABASE_URL=postgres://tasksuser:tasksPass123@localhost:5432/tasksmanager npm run test:e2e
-npm run test:e2e
+npm run test:e2e:local
 echo "==> E2E tests passed."
-
 
 # --- 5. Stage all changes ----------------------------------------------------
 echo "==> Staging all changes..."
