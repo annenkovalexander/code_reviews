@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -31,32 +31,20 @@ export class ReviewsService {
     return this.reviewsRepository.save(review);
   }
 
-  async findByHash(fileHash: string): Promise<Review> {
+  async findByHash(fileHash: string): Promise<Review | null> {
     const review = await this.reviewsRepository.findOneBy({
       fileHash,
     });
 
-    if (!review) {
-      throw new NotFoundException(
-        `Review for file hash "${fileHash}" not found`,
-      );
-    }
-
-    return review;
+    return review ?? null;
   }
 
-  async findByFilePath(filePath: string): Promise<Review> {
+  async findByFilePath(filePath: string): Promise<Review | null> {
     const review = await this.reviewsRepository.findOneBy({
       filePath,
     });
 
-    if (!review) {
-      throw new NotFoundException(
-        `Review for file path "${filePath}" not found`,
-      );
-    }
-
-    return review;
+    return review ?? null;
   }
 
   async findAll(dto: ReviewPaginationDto): Promise<PaginatedReviews> {
