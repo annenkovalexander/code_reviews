@@ -1,0 +1,89 @@
+{
+  "info": {
+    "name": "Code Review Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Review",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fileHash\": \"abc123\",\n  \"filePath\": \"src/Components/Circle/Circle.tsx\",\n  \"reviewText\": \"Review text\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/reviews",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reviews"]
+        }
+      }
+    },
+    {
+      "name": "Get All Reviews",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/reviews?page=1&limit=20",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reviews"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Review by Hash",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/reviews/hash/abc123",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reviews", "hash", "abc123"]
+        }
+      }
+    },
+    {
+      "name": "Get Review by File Path",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/reviews/file/src/Components/Circle/Circle.tsx",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reviews", "file", "src/Components/Circle/Circle.tsx"]
+        }
+      }
+    },
+    {
+      "name": "Get Reviews Needing Context",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/reviews/needs-context",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reviews", "needs-context"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001"
+    }
+  ]
+}
