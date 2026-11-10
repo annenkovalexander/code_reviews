@@ -2,39 +2,49 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
-  HttpStatus,
+  NotFoundException,
   Param,
   Post,
   Query,
 } from '@nestjs/common';
-
+import { ReviewsService } from './reviews.service.js';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 import { ReviewPaginationDto } from './dto/review-pagination.dto.js';
-import { ReviewsService } from './reviews.service.js';
+import { Review } from './entities/review.entity.js';
 
 @Controller('api/reviews')
 export class ReviewsController {
   constructor(private readonly reviewsService: ReviewsService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateReviewDto) {
+  async create(@Body() dto: CreateReviewDto): Promise<Review> {
     return this.reviewsService.create(dto);
   }
 
+  @Get()
+  async findAll(@Query() dto: ReviewPaginationDto) {
+    return this.reviewsService.findAll(dto);
+  }
+
   @Get('hash/:fileHash')
-  findByHash(@Param('fileHash') fileHash: string) {
-    return this.reviewsService.findByHash(fileHash);
+  async findByHash(@Param('fileHash') fileHash: string): Promise<Review> {
+    const review = await this.reviewsService.findByHash(fileHash);
+    if (!review) {
+      throw new NotFoundException(
+        `Review for file hash "${fileHash}" not found`,
+      );
+    }
+    return review;
   }
 
   @Get('file')
-  findByFilePath(@Query('filePath') filePath: string) {
-    return this.reviewsService.findByFilePath(filePath);
-  }
-
-  @Get()
-  findAll(@Query() dto: ReviewPaginationDto) {
-    return this.reviewsService.findAll(dto);
+  async findByFilePath(@Query('filePath') filePath: string): Promise<Review> {
+    const review = await this.reviewsService.findByFilePath(filePath);
+    if (!review) {
+      throw new NotFoundException(
+        `Review for file path "${filePath}" not found`,
+      );
+    }
+    return review;
   }
 }

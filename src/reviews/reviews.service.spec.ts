@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
 import { ReviewsService } from './reviews.service.js';
 import { CreateReviewDto } from './dto/create-review.dto.js';
 import { ReviewPaginationDto } from './dto/review-pagination.dto.js';
@@ -50,10 +49,12 @@ describe('ReviewsService', () => {
     expect(result).toEqual(review);
   });
 
-  it('throws NotFoundException if review by hash not found', async () => {
+  it('returns null if review by hash not found', async () => {
     reviewRepo.findOneBy.mockResolvedValue(null);
 
-    await expect(service.findByHash('nope')).rejects.toThrow(NotFoundException);
+    const result = await service.findByHash('nope');
+
+    expect(result).toBeNull();
   });
 
   it('returns review by file path', async () => {
@@ -68,12 +69,12 @@ describe('ReviewsService', () => {
     expect(result).toEqual(review);
   });
 
-  it('throws NotFoundException if review by file path not found', async () => {
+  it('returns null if review by file path not found', async () => {
     reviewRepo.findOneBy.mockResolvedValue(null);
 
-    await expect(
-      service.findByFilePath('nope.ts'),
-    ).rejects.toThrow(NotFoundException);
+    const result = await service.findByFilePath('nope.ts');
+
+    expect(result).toBeNull();
   });
 
   it('returns paginated reviews', async () => {
