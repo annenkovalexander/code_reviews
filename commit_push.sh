@@ -36,25 +36,28 @@ if [ -z "$(git status --porcelain)" ]; then
   exit 0
 fi
 
-
 # --- 4. Run e2e tests --------------------------------------------------------
+echo "==> Running unit tests..."
+npm run test
+echo "==> Unit tests passed."
+
+
+# --- 5. Run e2e tests --------------------------------------------------------
 echo "==> Running e2e tests..."
-#DATABASE_URL=postgres://tasksuser:tasksPass123@localhost:5432/tasksmanager npm run test:e2e
-npm run test:e2e
+npm run test:e2e:local
 echo "==> E2E tests passed."
 
-
-# --- 5. Stage all changes ----------------------------------------------------
+# --- 6. Stage all changes ----------------------------------------------------
 echo "==> Staging all changes..."
 git add .
 
 
-# --- 6. Commit with the provided message ------------------------------------
+# --- 7. Commit with the provided message ------------------------------------
 echo "==> Committing: $COMMIT_MESSAGE"
 git commit -m "$COMMIT_MESSAGE"
 
 
-# --- 7. Push to origin -------------------------------------------------------
+# --- 8. Push to origin -------------------------------------------------------
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 
 
