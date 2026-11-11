@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -67,4 +67,25 @@ export class ReviewsService {
       totalPages: Math.ceil(total / limit),
     };
   }
+  
+    async removeByHash(fileHash: string): Promise<{ deleted: boolean }> {
+        const result = await this.reviewsRepository.delete({ fileHash });
+        if (result.affected === 0) {
+            throw new NotFoundException(
+                `Review for file hash "${fileHash}" not found`,
+            );
+        }
+        return { deleted: true };
+    }
+
+
+    async removeByFilePath(filePath: string): Promise<{ deleted: boolean }> {
+        const result = await this.reviewsRepository.delete({ filePath });
+        if (result.affected === 0) {
+            throw new NotFoundException(
+                `Review for file path "${filePath}" not found`,
+            );
+        }
+        return { deleted: true };
+    }
 }
