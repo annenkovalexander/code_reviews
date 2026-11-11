@@ -1,94 +1,194 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { NotFoundException } from '@nestjs/common';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from 'vitest';
+
 import { ReviewsService } from './reviews.service.js';
-import { CreateReviewDto } from './dto/create-review.dto.js';
-import { ReviewPaginationDto } from './dto/review-pagination.dto.js';
+import { Review } from './entities/review.entity.js';
+import type { CreateReviewDto } from './dto/create-review.dto.js';
+import type { ReviewPaginationDto } from './dto/review-pagination.dto.js';
 
 describe('ReviewsService', () => {
   let service: ReviewsService;
-  let reviewRepo: any;
+  let moduleFixture: TestingModule;
 
-  beforeEach(() => {
-    reviewRepo = {
-      create: vi.fn(),
-      save: vi.fn(),
+  let repo: {
+    create: Mock;
+    save: Mock;
+    findOneBy: Mock;
+    findAndCount: Mock;
+    delete: Mock;
+  };
+
+  const fileHash = 'abc123';
+  const filePath =
+    '../../projects/annenkov_tech/src/Components/Circle/Circle.tsx';
+
+  const mockReview = {
+    id: 'c82581b9-d030-4285-a63e-4b768b3984c0',
+    fileHash,
+    filePath,
+    reviewText: 'Test review',
+    createdAt: new Date('2026-11-10T13:00:00.000Z'),
+  };
+
+  beforeEach(async () => {
+    repo = {
+      create: vi.fn((dto: CreateReviewDto) => ({
+        ...mockReview,
+        ...dto,
+      })),
+      save: vi.fn().mockResolvedValue(mockReview),
       findOneBy: vi.fn(),
       findAndCount: vi.fn(),
+      delete: vi.fn(),
     };
-    service = new ReviewsService(reviewRepo);
+
+    moduleFixture = await Test.createTestingModule({
+      providers: [
+        ReviewsService,
+        {
+          provide: getRepositoryToken(Review),
+          useValue: repo,
+        },
+      ],
+    }).compile();
+
+    service = moduleFixture.get<ReviewsService>(ReviewsService);
   });
 
-  it('creates review', async () => {
-    const dto: CreateReviewDto = {
-      fileHash: 'abc123',
-      filePath: 'src/Components/Circle/Circle.tsx',
-      reviewText: 'Review text',
-    } as any;
+  afterEach(async () => {
+    await moduleFixture?.close();
+  });
 
-    const review = { id: 1, ...dto };
-    reviewRepo.create.mockReturnValue(review);
-    reviewRepo.save.mockResolvedValue(review);
+  it('create — создаёт review', async () => {
+    const dto: CreateReviewDto = {
+      fileHash,
+      filePath,
+      reviewText: 'Test review',
+    };
 
     const result = await service.create(dto);
 
-    expect(reviewRepo.create).toHaveBeenCalledWith({
-      fileHash: dto.fileHash,
-      filePath: dto.filePath,
-      reviewText: dto.reviewText,
+    expect(repo.create).toHaveBeenCalledExactlyOnceWith(dto);
+    expect(repo.save).toHaveBeenCalledExactlyOnceWith(mockReview);
+    expect(result).toEqual(mockReview);
+  });
+
+  it('findByHash — возвращает review если найден', async () => {
+    repo.findOneBy.mockResolvedValue(mockReview);
+
+    const result = await service.findByHash(fileHash);
+
+    expect(repo.findOneBy).toHaveBeenCalledWith({ fileHash });
+    expect(result).toEqual(mockReview);
+  });
+
+  it('findByHash — возвращает null если не найден', async () => {
+    repo.findOneBy.mockResolvedValue(null);
+
+    const result = await service.findByHash('nonexistent');
+
+    expect(repo.findOneBy).toHaveBeenCalledWith({
+      fileHash: 'nonexistent',
     });
-    expect(reviewRepo.save).toHaveBeenCalledWith(review);
-    expect(result).toEqual(review);
-  });
-
-  it('returns review by hash', async () => {
-    const review = { id: 1, fileHash: 'abc123' };
-    reviewRepo.findOneBy.mockResolvedValue(review);
-
-    const result = await service.findByHash('abc123');
-
-    expect(reviewRepo.findOneBy).toHaveBeenCalledWith({ fileHash: 'abc123' });
-    expect(result).toEqual(review);
-  });
-
-  it('returns null if review by hash not found', async () => {
-    reviewRepo.findOneBy.mockResolvedValue(null);
-
-    const result = await service.findByHash('nope');
-
     expect(result).toBeNull();
   });
 
-  it('returns review by file path', async () => {
-    const review = { id: 1, filePath: 'src/Components/Circle/Circle.tsx' };
-    reviewRepo.findOneBy.mockResolvedValue(review);
+  it('findByFilePath — возвращает review если найден', async () => {
+    repo.findOneBy.mockResolvedValue(mockReview);
 
-    const result = await service.findByFilePath('src/Components/Circle/Circle.tsx');
+    const result = await service.findByFilePath(filePath);
 
-    expect(reviewRepo.findOneBy).toHaveBeenCalledWith({
-      filePath: 'src/Components/Circle/Circle.tsx',
-    });
-    expect(result).toEqual(review);
+    expect(repo.findOneBy).toHaveBeenCalledWith({ filePath });
+    expect(result).toEqual(mockReview);
   });
 
-  it('returns null if review by file path not found', async () => {
-    reviewRepo.findOneBy.mockResolvedValue(null);
+  it('findByFilePath — возвращает null если не найден', async () => {
+    repo.findOneBy.mockResolvedValue(null);
 
-    const result = await service.findByFilePath('nope.ts');
+    const result = await service.findByFilePath('nonexistent/path');
 
+    expect(repo.findOneBy).toHaveBeenCalledWith({
+      filePath: 'nonexistent/path',
+    });
     expect(result).toBeNull();
   });
 
-  it('returns paginated reviews', async () => {
-    const dto: ReviewPaginationDto = { page: 1, limit: 2 } as any;
-    const items = [{ id: 1 }, { id: 2 }];
-    reviewRepo.findAndCount.mockResolvedValue([items, 5]);
+  it('findAll — возвращает пагинированный результат', async () => {
+    const dto: ReviewPaginationDto = {
+      page: 1,
+      limit: 10,
+    };
+
+    const items = [mockReview];
+
+    repo.findAndCount.mockResolvedValue([items, 1]);
 
     const result = await service.findAll(dto);
 
-    expect(reviewRepo.findAndCount).toHaveBeenCalled();
-    expect(result.items).toEqual(items);
-    expect(result.total).toBe(5);
-    expect(result.page).toBe(1);
-    expect(result.limit).toBe(2);
-    expect(result.totalPages).toBe(3);
+    expect(repo.findAndCount).toHaveBeenCalledWith({
+      skip: 0,
+      take: 10,
+      order: { createdAt: 'DESC' },
+    });
+
+    expect(result).toEqual({
+      items,
+      total: 1,
+      page: 1,
+      limit: 10,
+      totalPages: 1,
+    });
+  });
+
+  it('removeByHash — удаляет review если найден', async () => {
+    repo.delete.mockResolvedValue({ affected: 1 });
+
+    const result = await service.removeByHash(fileHash);
+
+    expect(repo.delete).toHaveBeenCalledWith({ fileHash });
+    expect(result).toEqual({ deleted: true });
+  });
+
+  it('removeByHash — бросает NotFoundException если не найден', async () => {
+    repo.delete.mockResolvedValue({ affected: 0 });
+
+    await expect(
+      service.removeByHash('nonexistent'),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(repo.delete).toHaveBeenCalledWith({
+      fileHash: 'nonexistent',
+    });
+  });
+
+  it('removeByFilePath — удаляет review если найден', async () => {
+    repo.delete.mockResolvedValue({ affected: 1 });
+
+    const result = await service.removeByFilePath(filePath);
+
+    expect(repo.delete).toHaveBeenCalledWith({ filePath });
+    expect(result).toEqual({ deleted: true });
+  });
+
+  it('removeByFilePath — бросает NotFoundException если не найден', async () => {
+    repo.delete.mockResolvedValue({ affected: 0 });
+
+    await expect(
+      service.removeByFilePath('nonexistent/path'),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(repo.delete).toHaveBeenCalledWith({
+      filePath: 'nonexistent/path',
+    });
   });
 });
